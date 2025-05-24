@@ -46,5 +46,9 @@ async function checkStock() {
 (async () => {
   await initTable();
   console.log(`⏱️ Monitoring every ${INTERVAL / 1000}s...`);
-  setInterval(checkStock, INTERVAL);
+  const cron = require('node-cron');
+cron.schedule('*/1 * * * *', checkStock); // Every 1 minute
+  // checkStock(); // Initial check
+  setInterval(checkStock, INTERVAL); // Check every INTERVAL milliseconds
+  console.log("✅ Monitoring started");
 })();
