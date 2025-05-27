@@ -1,3 +1,4 @@
+// index.js
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const db = require('./db/db');
@@ -27,8 +28,8 @@ async function init() {
     console.log("📦 addToBag() result:", addStatus);
 
     await db('stock_logs').insert({
-      status: addStatus === 'clicked' ? 'in_stock' : 'sold_out',
-      message: addStatus === 'clicked' ? 'Product in stock and added to cart' : 'Still sold out or button not found'
+      status: addStatus.includes('clicked') ? 'in_stock' : 'sold_out',
+      message: `addToBag result: ${addStatus}`
     });
   } catch (err) {
     console.error("❌ Error during check:", err.message);
