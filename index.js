@@ -2,22 +2,11 @@ require('dotenv').config();
 const axios = require('axios');
 const cheerio = require('cheerio');
 const db = require('./db');
+const initTable = require('./initDb'); // 👈 Imported from separate file
+const cron = require('node-cron');
 
 const URL = process.env.PRODUCT_URL;
 const INTERVAL = parseInt(process.env.CHECK_INTERVAL || '60000');
-
-async function initTable() {
-  const exists = await db.schema.hasTable('stock_logs');
-  if (!exists) {
-    await db.schema.createTable('stock_logs', table => {
-      table.increments('id').primary();
-      table.string('status');
-      table.string('message');
-      table.timestamp('created_at').defaultTo(db.fn.now());
-    });
-    console.log("✅ Created table stock_logs");
-  }
-}
 
 async function checkStock() {
   try {
@@ -46,9 +35,10 @@ async function checkStock() {
 (async () => {
   await initTable();
   console.log(`⏱️ Monitoring every ${INTERVAL / 1000}s...`);
-  const cron = require('node-cron');
-cron.schedule('*/1 * * * *', checkStock); // Every 1 minute
-  // checkStock(); // Initial check
-  setInterval(checkStock, INTERVAL); // Check every INTERVAL milliseconds
-  console.log("✅ Monitoring started");
+
+  checkStock(); // Run immediately on start
+  setInterval(checkStock, INTERVAL); // Run at interval
+
+  // Optionally use cron if you prefer:
+  // cron.schedule('*/1 * * * *', checkStock);
 })();
