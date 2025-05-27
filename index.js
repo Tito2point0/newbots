@@ -1,24 +1,43 @@
-// index.js
-
 require('dotenv').config();
 const puppeteer = require('puppeteer');
+const db = require('./db/db');
 const acceptTerms = require('./actions/acceptTerms');
+const addToBag = require('./actions/addToBag');
 
 const URL = process.env.PRODUCT_URL;
+const INTERVAL = parseInt(process.env.CHECK_INTERVAL || '10000');
 
-(async () => {
-  const browser = await puppeteer.launch({ headless: false, slowMo: 30 });
+async function init() {
+  if (!URL) {
+    console.error("❌ PRODUCT_URL is not set in .env");
+    process.exit(1);
+  }
+
+  const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
-  console.log("🌍 Navigating to product page...");
-  await page.goto(URL, { waitUntil: 'networkidle2', timeout: 90000 });
+  try {
+    console.log("🌐 Navigating to product page...");
+    await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-  const result = await acceptTerms(page);
-  console.log("📋 acceptTerms() result:", result);
+    const accepted = await acceptTerms(page);
+    console.log("📋 acceptTerms() result:", accepted);
 
-  // Save screenshot
-  await page.screenshot({ path: 'accept_test.png', fullPage: true });
-  console.log("📸 Screenshot saved as accept_test.png");
+    const addStatus = await addToBag(page);
+    console.log("📦 addToBag() result:", addStatus);
 
-  await browser.close();
-})();
+    await db('stock_logs').insert({
+      status: addStatus === 'clicked' ? 'in_stock' : 'sold_out',
+      message: addStatus === 'clicked' ? 'Product in stock and added to cart' : 'Still sold out or button not found'
+    });
+  } catch (err) {
+    console.error("❌ Error during check:", err.message);
+    await db('stock_logs').insert({ status: 'error', message: err.message });
+  } finally {
+    await browser.close();
+    console.log("🧼 Browser session closed.");
+    setTimeout(init, INTERVAL);
+  }
+}
+
+init();
