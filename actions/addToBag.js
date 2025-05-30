@@ -1,16 +1,23 @@
 // actions/addToBag.js
 
 module.exports = async function addToBag(page) {
-  console.log('🛍️ Attempting to click "Add to Bag" using all methods...');
+  console.log('🛍️ Attempting to click "Add to Bag" using multiple selectors...');
 
   const methods = [
     {
-      name: 'full class selector',
-      selector: 'div.index_usBtn__2K1Ex.index_red__kx6Ql.index_btnFull__F7k90',
-      find: () => page.$('div.index_usBtn__2K1Ex.index_red__kx6Ql.index_btnFull__F7k90')
+      name: 'div.index_usBtn__2K1Ex',
+      find: () => page.$('div.index_usBtn__2K1Ex')
     },
     {
-      name: 'text includes "add to bag" (button)',
+      name: 'div.index_red__kx6Ql',
+      find: () => page.$('div.index_red__kx6Ql')
+    },
+    {
+      name: 'div.index_btnFull__F7k90',
+      find: () => page.$('div.index_btnFull__F7k90')
+    },
+    {
+      name: 'button text includes "add to bag"',
       find: async () => {
         const buttons = await page.$$('button');
         for (const btn of buttons) {
@@ -21,18 +28,19 @@ module.exports = async function addToBag(page) {
       }
     },
     {
-      name: 'xpath contains "Add to Bag"',
-      find: () => page.$x("//div[contains(text(), 'ADD TO BAG')]")
+      name: 'xpath contains "ADD TO BAG"',
+      find: async () => {
+        const handles = await page.$x("//div[contains(text(), 'ADD TO BAG')]");
+        return handles.length > 0 ? handles[0] : null;
+      }
     }
   ];
 
   for (const method of methods) {
     try {
       const handle = await method.find();
-      const element = Array.isArray(handle) ? handle[0] : handle;
-
-      if (element) {
-        await element.click();
+      if (handle) {
+        await handle.click();
         console.log(`✅ Clicked Add to Bag using method: ${method.name}`);
         return `clicked_via_${method.name}`;
       } else {
