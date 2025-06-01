@@ -34,11 +34,12 @@ async function init() {
   } catch (err) {
     console.error("❌ Error during check:", err.message);
     await db('stock_logs').insert({ status: 'error', message: err.message });
-  } finally {
-    await browser.close();
-    console.log("🧼 Browser session closed.");
-    setTimeout(init, INTERVAL);
   }
+  // finally {
+  //   await browser.close();
+  //   console.log("🧼 Browser session closed.");
+  //   setTimeout(init, INTERVAL);
+  // }
 }
 
 init();
