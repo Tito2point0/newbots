@@ -7,6 +7,8 @@ const addToBag = require('./actions/addToBag');
 
 const URL = process.env.PRODUCT_URL;
 const INTERVAL = parseInt(process.env.CHECK_INTERVAL || '10000');
+const USER_AGENT = process.env.USER_AGENT || 
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
 async function init() {
   if (!URL) {
@@ -16,6 +18,9 @@ async function init() {
 
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
+
+  // Set custom User-Agent to help avoid bot detection
+  await page.setUserAgent(USER_AGENT);
 
   try {
     console.log("🌐 Navigating to product page...");
@@ -29,22 +34,21 @@ async function init() {
 
     await db('stock_logs').insert({
       status: addStatus.includes('clicked') ? 'in_stock' : 'sold_out',
-      message: `addToBag result: ${addStatus}`
+      message: `addToBag result: ${addStatus}`,
+      checked_at: new Date().toISOString()
     });
   } catch (err) {
     console.error("❌ Error during check:", err.message);
     await db('stock_logs').insert({
-  status: addStatus.includes('clicked') ? 'in_stock' : 'sold_out',
-  message: `addToBag result: ${addStatus}`,
-  checked_at: new Date().toISOString()
-});
-
+      status: 'error',
+      message: err.message,
+      checked_at: new Date().toISOString()
+    });
+  } finally {
+    await browser.close();
+    console.log("🧼 Browser session closed.");
+    setTimeout(init, INTERVAL);
   }
-  // finally {
-  //   await browser.close();
-  //   console.log("🧼 Browser session closed.");
-  //   setTimeout(init, INTERVAL);
-  // }
 }
 
 init();
