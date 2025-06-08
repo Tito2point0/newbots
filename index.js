@@ -33,7 +33,12 @@ async function init() {
     });
   } catch (err) {
     console.error("❌ Error during check:", err.message);
-    await db('stock_logs').insert({ status: 'error', message: err.message });
+    await db('stock_logs').insert({
+  status: addStatus.includes('clicked') ? 'in_stock' : 'sold_out',
+  message: `addToBag result: ${addStatus}`,
+  checked_at: new Date().toISOString()
+});
+
   }
   // finally {
   //   await browser.close();
