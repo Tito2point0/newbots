@@ -19,12 +19,15 @@ async function init() {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
-  // Set custom User-Agent to help avoid bot detection
   await page.setUserAgent(USER_AGENT);
 
   try {
     console.log("🌐 Navigating to product page...");
-    await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const response = await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+    if (!response) throw new Error("No response from page.goto()");
+    const status = response.status();
+    console.log(`📡 page.goto() HTTP status: ${status}`);
 
     const accepted = await acceptTerms(page);
     console.log("📋 acceptTerms() result:", accepted);
@@ -35,13 +38,14 @@ async function init() {
     await db('stock_logs').insert({
       status: addStatus.includes('clicked') ? 'in_stock' : 'sold_out',
       message: `addToBag result: ${addStatus}`,
+      http_status: status,
       checked_at: new Date().toISOString()
     });
   } catch (err) {
-    console.error("❌ Error during check:", err.message);
+    console.error("❌ Error during check:", err.stack);
     await db('stock_logs').insert({
       status: 'error',
-      message: err.message,
+      message: err.stack,
       checked_at: new Date().toISOString()
     });
   } finally {
