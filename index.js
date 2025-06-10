@@ -1,10 +1,10 @@
-// index.js
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const db = require('./db/db');
 const acceptTerms = require('./actions/acceptTerms');
 const addToBag = require('./actions/addToBag');
-const ora = require('ora');
+const ora = require('ora').default;
+const initTable = require('./db/initDb'); // ✅ NEW
 
 const URL = process.env.PRODUCT_URL;
 const INTERVAL = parseInt(process.env.CHECK_INTERVAL || '10000');
@@ -16,6 +16,8 @@ async function init() {
     console.error("❌ PRODUCT_URL is not set in .env");
     process.exit(1);
   }
+
+  await initTable(); // ✅ Ensures DB table and columns are ready
 
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
@@ -51,8 +53,8 @@ async function init() {
       checked_at: new Date().toISOString()
     });
   } finally {
-    await browser.close();
-    console.log("🧼 Browser session closed.");
+  
+
     setTimeout(init, INTERVAL);
   }
 }
