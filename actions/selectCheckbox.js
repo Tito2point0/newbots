@@ -1,18 +1,24 @@
-// actions/selectCheckbox.js
-module.exports = async function selectCheckbox(page) {
-  const checkboxSelector = 'div.index_checkbox__w_166 input[type="checkbox"]';
-
+module.exports = async function selectAllCheckboxes(page) {
   try {
-    // Wait until checkbox is available in the DOM and visible
-    await page.waitForSelector(checkboxSelector, { visible: true, timeout: 8000 });
+    const result = await page.evaluate(() => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      let clickedCount = 0;
 
-    // Click the checkbox using Puppeteer's built-in method
-    await page.click(checkboxSelector);
+      checkboxes.forEach(cb => {
+        const isVisible = cb.offsetParent !== null;
+        if (isVisible && !cb.checked) {
+          cb.click();
+          clickedCount++;
+        }
+      });
 
-    console.log('☑️ Successfully clicked checkbox using wait and page.click().');
-    return 'clicked';
+      return clickedCount;
+    });
+
+    console.log(`☑️ Clicked ${result} checkboxes.`);
+    return result > 0 ? 'clicked_some' : 'none_found';
   } catch (err) {
-    console.error('❌ Error selecting checkbox:', err.message);
+    console.error('❌ Error selecting checkboxes:', err.message);
     return 'error';
   }
 };
