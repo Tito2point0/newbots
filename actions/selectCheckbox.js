@@ -1,35 +1,54 @@
 // actions/selectCheckbox.js
 module.exports = async function selectCheckbox(page) {
-  try {
-    await page.waitForSelector('body', { timeout: 5000 });
+  const selectorsToTry = [
+    'div.index_checkboxLeft__2x_K1',
+    'div.index_checkbox__w_166',
+    'div.index_selectText__HDXz',
+    'svg.index_checkboxActive__LaAvY',
+    'div[class*="checkbox"]',
+  ];
 
-    const results = await page.evaluate(() => {
-      const log = [];
-      const all = [...document.querySelectorAll('*')];
-      const checkboxEls = all.filter(el => el.className && el.className.toString().includes('checkbox'));
+  for (const selector of selectorsToTry) {
+    try {
+      const elementHandle = await page.$(selector);
 
-      if (!checkboxEls.length) return { log: ['❌ No checkbox-like elements found.'], clicked: false };
+      if (elementHandle) {
+        console.log(`✅ Found: "${selector}"`);
 
-      checkboxEls.forEach((el, i) => {
+        // Try clicking with Puppeteer directly
         try {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-          const evt = new MouseEvent('click', { bubbles: true, cancelable: true });
-          el.dispatchEvent(evt);
-
-          log.push(`✅ Clicked element [${i}]: ${el.className}`);
-        } catch (e) {
-          log.push(`❌ Failed to click element [${i}]: ${el.className} — ${e.message}`);
+          await elementHandle.click({ delay: 50 });
+          console.log(`☑️ Successfully clicked with .click(): "${selector}"`);
+          return 'clicked';
+        } catch (clickErr) {
+          console.warn(`⚠️ .click() failed on "${selector}":`, clickErr.message);
         }
-      });
 
-      return { log, clicked: checkboxEls.length > 0 };
-    });
+        // Try evaluate if click() fails
+        const result = await page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          if (el && typeof el.click === 'function') {
+            el.click();
+            return true;
+          }
+          return false;
+        }, selector);
 
-    results.log.forEach(l => console.log(l));
-    return results.clicked ? 'clicked_some' : 'none_found';
-  } catch (err) {
-    console.error('❌ selectCheckbox() crashed:', err.message);
-    return 'error';
+        if (result) {
+          console.log(`☑️ Clicked via evaluate(): "${selector}"`);
+          return 'clicked';
+        } else {
+          console.warn(`⚠️ Element "${selector}" not clickable via evaluate().`);
+        }
+      } else {
+        console.log(`❌ Not found: "${selector}"`);
+      }
+
+    } catch (err) {
+      console.error(`❌ Error on "${selector}":`, err.message);
+    }
   }
+
+  console.warn("⚠️ None of the checkbox selectors worked.");
+  return 'failed';
 };
