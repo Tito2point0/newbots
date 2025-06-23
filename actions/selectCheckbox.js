@@ -1,22 +1,24 @@
-// actions/selectCheckbox.js
-module.exports = async function selectCheckbox(page) {
+module.exports = async function selectAllCheckboxes(page) {
   try {
-    const checkboxes = await page.$$('.index_checkbox__w_166');
+    const result = await page.evaluate(() => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      let clickedCount = 0;
 
-    if (checkboxes.length === 0) {
-      console.warn('⚠️ No checkboxes found.');
-      return 'not_found';
-    }
+      checkboxes.forEach(cb => {
+        const isVisible = cb.offsetParent !== null;
+        if (isVisible && !cb.checked) {
+          cb.click();
+          clickedCount++;
+        }
+      });
 
-    for (const box of checkboxes) {
-      await box.click();
-    }
+      return clickedCount;
+    });
 
-    console.log('☑️ All checkboxes clicked.');
-    return 'clicked_all';
+    console.log(`☑️ Clicked ${result} checkboxes.`);
+    return result > 0 ? 'clicked_some' : 'none_found';
   } catch (err) {
-    console.error('❌ Error selecting checkbox:', err.message);
+    console.error('❌ Error selecting checkboxes:', err.message);
     return 'error';
   }
 };
-
