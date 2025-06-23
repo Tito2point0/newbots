@@ -1,6 +1,7 @@
 // index.js
 require('dotenv').config();
 const puppeteer = require('puppeteer');
+const ora = require('ora').default;
 const db = require('./db/db');
 const initDb = require('./db/initDb');
 const acceptTerms = require('./actions/acceptTerms');
@@ -25,13 +26,13 @@ async function init() {
   const page = await browser.newPage();
   await page.setUserAgent(USER_AGENT);
 
-  console.log('🌐 Navigating to product page...');
+  const spinner = ora('🌐 Navigating to product page...').start();
 
   try {
     const response = await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response) throw new Error("No response from page.goto()");
     const status = response.status();
-    console.log(`📡 Page loaded successfully (HTTP ${status})`);
+    spinner.succeed(`📡 Page loaded successfully (HTTP ${status})`);
 
     const accepted = await acceptTerms(page);
     console.log("📋 acceptTerms() result:", accepted);
@@ -53,6 +54,7 @@ async function init() {
     });
 
   } catch (err) {
+    spinner.fail("❌ Failed to load page or complete .");
     console.error("❌ Error during check:", err.stack);
     await db('stock_logs').insert({
       status: 'error',
