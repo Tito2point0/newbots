@@ -1,43 +1,32 @@
 // actions/selectCheckbox.js
 module.exports = async function selectCheckbox(page) {
   const selectorsToTry = [
-    'div.index_checkbox__w_166',
-    'div.index_checkboxLeft__2x_K1',
-    'div.index_selectText__HDXz',
-    'div[class*="checkbox"]'
+    'svg.index_checkboxBoxActive__LAaVV',
+    'div.index_checkboxLeft__2x_K1 svg',
+    'div.index_checkbox__w_166 svg',
+    'svg[class*="checkbox"]'
   ];
 
   for (const selector of selectorsToTry) {
-    const success = await page.evaluate((sel) => {
-      const el = document.querySelector(sel);
-      if (!el) return 'not_found';
-
-      try {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        const simulateClick = () => {
-          const event = new MouseEvent('click', { bubbles: true, cancelable: true });
-          el.dispatchEvent(event);
-        };
-
-        if (typeof el.click === 'function') {
-          el.click();
-        } else {
-          simulateClick();
-        }
-
-        return 'clicked';
-      } catch (e) {
-        return `error: ${e.message}`;
+    try {
+      const elHandle = await page.$(selector);
+      if (!elHandle) {
+        console.log(`🔍 Selector: "${selector}" → not_found`);
+        continue;
       }
-    }, selector);
 
-    console.log(`🔍 Selector: "${selector}" → ${success}`);
+      await elHandle.evaluate(el => {
+        el.scrollIntoView({ behavior: 'auto', block: 'center' });
+      });
 
-    if (success === 'clicked') return `clicked: ${selector}`;
+      await elHandle.click({ delay: 100 });
+      console.log(`✅ Clicked using selector: ${selector}`);
+      return `clicked: ${selector}`;
+    } catch (err) {
+      console.log(`❌ Error clicking selector "${selector}": ${err.message}`);
+    }
   }
 
-  console.warn("⚠️ None of the checkbox selectors worked.");
+  console.warn("⚠️ All selectors failed to click checkbox.");
   return 'failed';
 };
-
